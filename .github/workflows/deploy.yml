@@ -32,7 +32,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build and tag image
-      id: build
+      id: build-image
       run: |
         set -e
         ECR_URI=$(aws ecr describe-repositories \
@@ -41,17 +41,12 @@ jobs:
           --query 'repositories[0].repositoryUri' \
           --output text)
         echo "ECR_URI=$ECR_URI"
-        echo "ECR_URI=$ECR_URI" >> $GITHUB_OUTPUT
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
-        docker build -t $ECR_URI:$IMAGE_TAG .
+        docker build -t $ECR_URI:${{ env.IMAGE_TAG }} .
+        echo "ECR_URI=$ECR_URI" > image-info.txt
+        echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> image-info.txt
 
     - name: Upload image info as artifact
-      run: |
-        echo "ECR_URI=${{ steps.build.outputs.ECR_URI }}" > image-info.txt
-        echo "IMAGE_TAG=${{ steps.build.outputs.IMAGE_TAG }}" >> image-info.txt
-      shell: bash
-
-    - uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: image-metadata
         path: image-info.txt
@@ -66,17 +61,18 @@ jobs:
     needs: build
 
     steps:
-    - uses: actions/download-artifact@v4
+    - name: Download artifact
+      uses: actions/download-artifact@v4
       with:
         name: image-metadata
         path: .
 
     - name: Load image metadata
+      id: load-vars
       run: |
         source image-info.txt
         echo "ECR_URI=$ECR_URI" >> $GITHUB_ENV
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-      shell: bash
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
@@ -102,9 +98,11 @@ jobs:
     needs: push
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-    - uses: actions/download-artifact@v4
+    - name: Download artifact
+      uses: actions/download-artifact@v4
       with:
         name: image-metadata
         path: .
@@ -112,10 +110,7 @@ jobs:
     - name: Load image metadata
       run: |
         source image-info.txt
-        echo "ECR_URI=$ECR_URI" >> $GITHUB_ENV
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "ECR_IMAGE=$ECR_URI:$IMAGE_TAG" >> $GITHUB_ENV
-      shell: bash
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
