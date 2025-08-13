@@ -20,9 +20,6 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql, zip, curl
           coverage: none
 
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
       - name: Deploy to Ubuntu Server
         uses: appleboy/ssh-action@v1.2.0
         with:
