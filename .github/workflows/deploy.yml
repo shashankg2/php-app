@@ -3,48 +3,38 @@ name: Deploy PHP App
 on:
   push:
     branches:
-      - main   # Change to your deployment branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1. Checkout your code
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up PHP (with extensions)
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'   # Change if your app uses another PHP version
-          extensions: mbstring, pdo, pdo_mysql, intl, zip, curl
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, zip, curl
           coverage: none
 
-      # 3. Install Composer
-      - name: Install dependencies with Composer
-        run: |
-          composer install --no-interaction --prefer-dist --optimize-autoloader
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      # 4. Run tests (optional)
-      - name: Run PHPUnit tests
-        run: |
-          if [ -f vendor/bin/phpunit ]; then
-            vendor/bin/phpunit
-          fi
-
-      # 5. Deploy via SSH
-      - name: Deploy to Ubuntu server
+      - name: Deploy to Ubuntu Server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
           script: |
-            cd /var/www/html/your-app   # Change to your server path
-            git pull origin main
+            cd /var/www/html/onmark
+            if [ ! -d .git ]; then
+              git clone https://github.com/<your-username>/<your-repo>.git .
+            else
+              git pull origin main
+            fi
             composer install --no-interaction --prefer-dist --optimize-autoloader
-            php artisan migrate --force || true
             sudo systemctl restart apache2
