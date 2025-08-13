@@ -32,7 +32,7 @@ jobs:
           script: |
             cd /var/www/html/onmark
             if [ ! -d .git ]; then
-              git clone https://github.com/<your-username>/<your-repo>.git .
+              https://github.com/shashankg2/php-app.git .
             else
               git pull origin main
             fi
